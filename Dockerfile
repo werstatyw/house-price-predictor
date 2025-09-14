@@ -10,7 +10,7 @@ COPY src/api/ .
 RUN pip install -r requirements.txt
 
 # Copy models directory
-COPY models/ ./models/
+COPY models/* ./models/
 
 # Expose port
 EXPOSE 8000
