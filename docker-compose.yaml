@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    container_name: house-price-api
+    networks:
+      - house-predictor-network
+
+  streamlit:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    container_name: house-price-streamlit
+    environment:
+      - API_URL=http://fastapi:8000
+    depends_on:
+      - fastapi
+    networks:
+      - house-predictor-network
+
+networks:
+  house-predictor-network:
+    driver: bridge
