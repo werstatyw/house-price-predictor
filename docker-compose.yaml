@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ghcr.io/werstatyw/fastapi:dev
     ports:
       - "8000:8000"
     container_name: house-price-api
@@ -15,6 +16,7 @@ services:
     build:
       context: ./streamlit_app
       dockerfile: Dockerfile
+    image: ghcr.io/werstatyw/streamlit:dev
     ports:
       - "8501:8501"
     container_name: house-price-streamlit
