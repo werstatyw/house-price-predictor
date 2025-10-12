@@ -7,11 +7,8 @@ on:
     branches: [ main ] 
   
 jobs:
-  first-interaction:
+  setup-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,29 +24,112 @@ jobs:
           
       - name: Install requirements
         run: |
-          pip install -r requirements.txt 
+          pip install -r requirements.txt
+          
+      - name: Run tests (if any)
+        run: |
+          echo "Running tests..."
+          # Add your test commands here if you have tests
+
+  data-preprocessing:
+    runs-on: ubuntu-latest
+    needs: setup-and-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.13'
+          
+      - name: Install pip
+        run: |
+          python -m pip install --upgrade pip
+          
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+          
       - name: Run Data Preprocessing
         run: |
-          python src/data/run_processing.py  \
-            --input data/raw/house_data.csv  \
+          python src/data/run_processing.py \
+            --input data/raw/house_data.csv \
             --output data/processed/cleaned_house_data.csv
+            
+      - name: Upload processed data
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-data
+          path: data/processed/cleaned_house_data.csv
+
+  feature-engineering:
+    runs-on: ubuntu-latest
+    needs: data-preprocessing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.13'
+          
+      - name: Install pip
+        run: |
+          python -m pip install --upgrade pip
+          
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Download processed data
+        uses: actions/download-artifact@v4
+        with:
+          name: processed-data
+          path: data/processed/
+          
       - name: Run Feature Engineering
         run: |
           python src/features/engineer.py \
             --input data/processed/cleaned_house_data.csv \
             --output data/processed/featured_house_data.csv \
             --preprocessor models/trained/preprocessor.pkl
+            
+      - name: Upload featured data
+        uses: actions/upload-artifact@v4
+        with:
+          name: featured-data
+          path: |
+            data/processed/featured_house_data.csv
+            models/trained/preprocessor.pkl
 
-      # - name: Run MLflow Server
-      #   run: |
-      #     docker pull ghcr.io/mlflow/mlflow:latest
-      #     docker run -d -p 5555:5000 --name mlfow-server ghcr.io/mlflow/mlflow:latest \
-      #     mlflow server --host 0.0.0.0 \
-      #     --backend-store-uri sqlite:///mlflow.db \
-      #     --default-artifact-root /tmp/mlruns
-
+  model-training:
+    runs-on: ubuntu-latest
+    needs: feature-engineering
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.13'
+          
+      - name: Install pip
+        run: |
+          python -m pip install --upgrade pip
+          
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Download featured data
+        uses: actions/download-artifact@v4
+        with:
+          name: featured-data
+          path: .
+          
       - name: Run Model Training
         run: |
           python src/models/train_model.py \
@@ -57,6 +137,28 @@ jobs:
             --data data/processed/featured_house_data.csv \
             --models-dir models \
             --mlflow-tracking-uri http://vm629266.eurodir.ru:5555/
+            
+      - name: Upload trained models
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-models
+          path: models/
+
+  build-and-push-images:
+    runs-on: ubuntu-latest
+    needs: model-training
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download trained models
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-models
+          path: models/
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
