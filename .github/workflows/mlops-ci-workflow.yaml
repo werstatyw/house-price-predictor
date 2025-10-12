@@ -34,15 +34,15 @@ jobs:
       
       - name: Run Feature Engineering
         run: |
-          python src/features/engineer.py \  
-            --input data/processed/cleaned_house_data.csv \  
+          python src/features/engineer.py \
+            --input data/processed/cleaned_house_data.csv \
             --output data/processed/featured_house_data.csv \
             --preprocessor models/trained/preprocessor.pkl
 
       - name: Run Model Training
         run: |
-           python src/models/train_model.py  \
-            --config configs/model_config.yaml  \ 
-            --data data/processed/featured_house_data.csv  \
-            --models-dir models  \ 
+          python src/models/train_model.py \
+            --config configs/model_config.yaml \
+            --data data/processed/featured_house_data.csv \
+            --models-dir models \
             --mlflow-tracking-uri http://vm629266.eurodir.ru:5555/
